@@ -3,11 +3,14 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using BLL.Controllers.Bases;
 using BLL.Services;
 using BLL.Models;
+using Microsoft.AspNetCore.Authorization;
 
 // Generated from Custom Template.
 
 namespace MVC.Controllers
 {
+    //Way2
+    [Authorize(Roles ="Admin")]
     public class BranchesController : MvcController
     {
         // Service injections:
@@ -30,6 +33,8 @@ namespace MVC.Controllers
         }
 
         // GET: Branches
+        //Way1
+        //[Authorize(Roles = "Admin")]
         public IActionResult Index()
         {
             // Get collection service logic:

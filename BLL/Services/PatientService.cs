@@ -4,6 +4,7 @@ using BLL.Services.Bases;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,13 +14,14 @@ namespace BLL.Services
     
     public interface IPatientService 
     {
-        public IQueryable<PatientModel> Query();
-        public ServiceBase Create(Patient record);
-        public ServiceBase Update(Patient record);
-        public ServiceBase Delete(int id);
+        //way1
+        //public IQueryable<PatientModel> Query();
+        //public ServiceBase Create(Patient record);
+        //public ServiceBase Update(Patient record);
+        //public ServiceBase Delete(int id);
     }
 
-    public class PatientService : ServiceBase, IPatientService
+    public class PatientService : ServiceBase, IService<Patient, PatientModel>
     {
         public PatientService(Db db) : base(db)
         {
@@ -49,7 +51,8 @@ namespace BLL.Services
 
         public IQueryable<PatientModel> Query()
         {
-            return _db.Patients.Include(p=> p.Branches).OrderByDescending(p => p.BirthDate).ThenByDescending(p => p.IsFemale).ThenBy(p => p.Name).
+            return _db.Patients.Include(p=> p.Branches).Include(p=> p.DoctorPatients).ThenInclude(dp => dp.Doctor)
+                .OrderByDescending(p => p.BirthDate).ThenByDescending(p => p.IsFemale).ThenBy(p => p.Name).
                 Select(p => new PatientModel() { Record = p });
         }
 
@@ -58,8 +61,19 @@ namespace BLL.Services
             if (_db.Patients.Any(p=>p.Id != record.Id && p.Name.ToLower() == record.Name.ToLower().Trim() && p.IsFemale == record.IsFemale &&
                p.BirthDate == record.BirthDate))
                 return Error("Patinents with same name, birthdate and gender exists!");
-            record.Name = record.Name?.Trim();
-            _db.Patients.Update(record);
+            var entity = _db.Patients.Include(p => p.DoctorPatients).SingleOrDefault(p => p.Id == record.Id);
+            if (entity == null) 
+                return Error("Patient not found");
+            _db.DoctorPatients.RemoveRange(entity.DoctorPatients);
+            entity.Name = record.Name?.Trim();
+            entity.IsFemale = record.IsFemale;
+            entity.BirthDate = record.BirthDate;
+            entity.Surname = record.Surname;
+            entity.Weight = record.Weight;
+            entity.Height = record.Height;  
+            entity.BranchesId = record.BranchesId;
+            entity.DoctorPatients = record.DoctorPatients;
+            _db.Patients.Update(entity);
             _db.SaveChanges();
             return Success("Patinet updated successfully.");
         }

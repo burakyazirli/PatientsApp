@@ -14,6 +14,10 @@ namespace BLL.DAL
         public DbSet<Doctor> Doctors{ get; set; }
         public DbSet<DoctorPatient> DoctorPatients{ get; set; }
 
+        public DbSet<User> Users { get; set; }
+        public DbSet<Role> Roles { get; set; }
+
+
         public Db(DbContextOptions options) : base(options)
         {
 

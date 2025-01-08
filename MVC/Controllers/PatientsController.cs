@@ -3,36 +3,44 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using BLL.Controllers.Bases;
 using BLL.Services;
 using BLL.Models;
+using BLL.Services.Bases;
+using BLL.DAL;
+using Microsoft.AspNetCore.Authorization;
+using System.Drawing;
 
 // Generated from Custom Template.
 
 namespace MVC.Controllers
 {
+    [Authorize]
     public class PatientsController : MvcController
     {
         // Service injections:
-        private readonly IPatientService _patientService;
+        //private readonly IPatientService _patientService;
+        private readonly IService<Patient, PatientModel> _patientService;
         private readonly IBranchService _branchService;
 
         /* Can be uncommented and used for many to many relationships. ManyToManyRecord may be replaced with the related entiy name in the controller and views. */
-        //private readonly IManyToManyRecordService _ManyToManyRecordService;
+        private readonly IService<Doctor, DoctorModel> _doctorService;
 
         public PatientsController(
-			IPatientService patientService
+            IService<Patient, PatientModel> patientService
             , IBranchService branchesService
 
             /* Can be uncommented and used for many to many relationships. ManyToManyRecord may be replaced with the related entiy name in the controller and views. */
-            //, IManyToManyRecordService ManyToManyRecordService
+            , IService<Doctor, DoctorModel> doctorService
+           
         )
         {
             _patientService = patientService;
             _branchService = branchesService;
 
             /* Can be uncommented and used for many to many relationships. ManyToManyRecord may be replaced with the related entiy name in the controller and views. */
-            //_ManyToManyRecordService = ManyToManyRecordService;
+            _doctorService = doctorService;
         }
 
         // GET: Patients
+        [AllowAnonymous]
         public IActionResult Index()
         {
             // Get collection service logic:
@@ -54,10 +62,11 @@ namespace MVC.Controllers
             ViewData["BranchesId"] = new SelectList(_branchService.Query().ToList(), "Record.Id", "Name");
             
             /* Can be uncommented and used for many to many relationships. ManyToManyRecord may be replaced with the related entiy name in the controller and views. */
-            //ViewBag.ManyToManyRecordIds = new MultiSelectList(_ManyToManyRecordService.Query().ToList(), "Record.Id", "Name");
+            ViewBag.DoctorIds = new MultiSelectList(_doctorService.Query().ToList(), "Record.Id", "NameAndSurname");
         }
 
         // GET: Patients/Create
+        [Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
             SetViewData();
@@ -67,6 +76,7 @@ namespace MVC.Controllers
         // POST: Patients/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public IActionResult Create(PatientModel patient)
         {
             if (ModelState.IsValid)
@@ -85,6 +95,7 @@ namespace MVC.Controllers
         }
 
         // GET: Patients/Edit/5
+        [Authorize(Roles = "Admin")]
         public IActionResult Edit(int id)
         {
             // Get item to edit service logic:
@@ -96,6 +107,7 @@ namespace MVC.Controllers
         // POST: Patients/Edit
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public IActionResult Edit(PatientModel patient)
         {
             if (ModelState.IsValid)
@@ -114,8 +126,14 @@ namespace MVC.Controllers
         }
 
         // GET: Patients/Delete/5
+        //Way2:
+        [Authorize(Roles = "Admin")]
         public IActionResult Delete(int id)
         {
+            ////Way1
+            //if (!User.IsInRole("Admin"))
+            //    return RedirectToAction("login", "Users");
+
             // Get item to delete service logic:
             var item = _patientService.Query().SingleOrDefault(q => q.Record.Id == id);
             return View(item);
@@ -124,6 +142,7 @@ namespace MVC.Controllers
         // POST: Patients/Delete
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public IActionResult DeleteConfirmed(int id)
         {
             // Delete item service logic:

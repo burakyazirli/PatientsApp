@@ -1,14 +1,45 @@
 using BLL.DAL;
+using BLL.Models;
 using BLL.Services;
+using BLL.Services.Bases;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
+//AppSettings
+var appSettingsSection = builder.Configuration.GetSection(nameof(AppSettings));
+appSettingsSection.Bind(new AppSettings());
 
 // IoC Container:
-var connectionString = "server=(localdb)\\mssqllocaldb;database=PatientsAppDB;trusted_connection=true;";
+var connectionString = builder.Configuration.GetConnectionString("Db");
 builder.Services.AddDbContext<Db>(options => options.UseSqlServer(connectionString));
 builder.Services.AddScoped<IBranchService, BranchService>(); //AddSingleton
-builder.Services.AddScoped<IPatientService, PatientService>();
+//builder.Services.AddScoped<IPatientService, PatientService>();
+//way2
+builder.Services.AddScoped<IService<Patient, PatientModel>, PatientService>();
+builder.Services.AddScoped<IService<Doctor, DoctorModel>, DoctorService>();
+
+builder.Services.AddScoped<IService<User, UserModel>, UserService>();
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<HttpServiceBase, HttpService>();
+
+//Authentication:
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Users/Login";
+        options.AccessDeniedPath = "/Users/Login";
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+        options.SlidingExpiration = true;
+
+    });
+
+//Session: for httprequest
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30); //default 20 min
+});
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
@@ -29,7 +60,13 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+//Authentication
+app.UseAuthentication();
+
 app.UseAuthorization();
+
+//Session
+app.UseSession();
 
 app.MapControllerRoute(
     name: "default",
